@@ -5,6 +5,26 @@
 #include "memlayout.h"
 #include "spinlock.h"
 #include "proc.h"
+//lab2
+#include "sysinfo.h"
+extern int getnproc(void);
+extern int getfreemem(void);
+uint64
+sys_sysinfo(void)
+{
+  struct proc *p = myproc();
+  struct sysinfo st;
+  uint64 addr; //指向用户空间的指针
+  st.freemem = getfreemem();//获取系统中空闲内存的总量
+  st.nproc = getnproc();//处于非 UNUSED 状态的进程数量
+  argaddr(0, &addr);
+  if (addr < 0)
+    return -1;
+  if (copyout(p->pagetable, addr, (char *)&st, sizeof(st)) < 0)//调用 copyout() 函数，将 st 中的数据从内核空间复制到用户空间
+    return -1;
+  return 0;
+}
+
 
 uint64
 sys_exit(void)

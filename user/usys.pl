@@ -14,7 +14,8 @@ sub entry {
     print " ecall\n";
     print " ret\n";
 }
-	
+entry("sysinfo");#lab2
+entry("trace");	#lab2
 entry("fork");
 entry("exit");
 entry("wait");

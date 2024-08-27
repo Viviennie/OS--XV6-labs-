@@ -42,7 +42,35 @@ proc_mapstacks(pagetable_t kpgtbl)
     kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
   }
 }
-
+//lab2
+// 收集进程数
+int getnproc(void)
+{
+  struct proc *p;
+  int count = 0;
+  for (p = proc; p < &proc[NPROC]; p++)
+  {
+    acquire(&p->lock);
+    if (p->state != UNUSED)
+    {
+      count++;
+      release(&p->lock);
+    }
+    else
+    {
+      release(&p->lock);
+    }
+  }
+  return count;
+}
+//lab2
+uint64 sys_trace(void)
+{
+  int mask;
+  argint(0, &mask); // 从用户空间获取 trace 参数（用户态的trace函数帮我们处理好了）
+  myproc()->tracemask = mask; // 将 trace 参数保存到当前进程的进程控制块中
+  return 0; // 返回 0 表示系统调用执行成功
+}
 // initialize the proc table.
 void
 procinit(void)
@@ -294,6 +322,9 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+
+  np->tracemask = p->tracemask;//lab2
+
   np->sz = p->sz;
 
   // copy saved user registers.

@@ -63,12 +63,14 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+int             getfreemem(void);//lab2 
 
 // log.c
 void            initlog(int, struct superblock*);
 void            log_write(struct buf*);
 void            begin_op(void);
 void            end_op(void);
+
 
 // pipe.c
 int             pipealloc(struct file**, struct file**);
@@ -82,6 +84,7 @@ void            panic(char*) __attribute__((noreturn));
 void            printfinit(void);
 
 // proc.c
+int             getnproc(void);//lab2
 int             cpuid(void);
 void            exit(int);
 int             fork(void);

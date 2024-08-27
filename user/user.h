@@ -1,6 +1,10 @@
 struct stat;
+struct sysinfo;//lab2
+
 
 // system calls
+int sysinfo(struct sysinfo *);//lab2
+int trace(int);//lab2
 int fork(void);
 int exit(int) __attribute__((noreturn));
 int wait(int*);

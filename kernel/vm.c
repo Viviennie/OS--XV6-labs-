@@ -437,3 +437,28 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
     return -1;
   }
 }
+
+void vmprintwalk(pagetable_t pagetable, int depth)
+{
+  // 递归地遍历页表的 512 个页表项（PTE）
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
+      for (int n = 0; n < depth; n++)
+        printf(" ..");
+      printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte));//通过检查 PTE 的标志位，判断它是指向下一级页表还是指向物理内存。
+      uint64 child = PTE2PA(pte);
+      vmprintwalk((pagetable_t)child, depth+1);//递归调用 vmprintwalk 以更深的层次打印子页表
+    } else if(pte & PTE_V){
+      for (int n = 0; n < depth; n++)
+        printf(" ..");
+      printf("%d: pte %p pa %p\n", i, pte, PTE2PA(pte));//打印对应的物理地址
+    }
+  }
+}
+
+void vmprint(pagetable_t pagetable)
+{
+  printf("page table %p\n",pagetable);//根页表地址
+  vmprintwalk(pagetable,1);//从深度 1 开始递归打印整个页表结构
+}

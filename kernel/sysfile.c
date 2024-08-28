@@ -85,7 +85,7 @@ sys_write(void)
   struct file *f;
   int n;
   uint64 p;
-  
+
   argaddr(1, &p);
   argint(2, &n);
   if(argfd(0, 0, &f) < 0)
@@ -301,6 +301,38 @@ create(char *path, short type, short major, short minor)
   return 0;
 }
 
+struct inode*
+opensymlink(struct inode* ip)
+{
+  char target[MAXPATH];
+  const int max_times = 10;
+  int i, times, nums[max_times];
+
+  for(times = 0; times < max_times; ++times){
+    nums[times] = ip->inum;
+    if(readi(ip, 0, (uint64)target, 0, MAXPATH) < 0){
+      iunlockput(ip);
+      return 0;
+    }
+    iunlockput(ip);
+    if((ip = namei(target)) == 0){
+      return 0;
+    }
+    for(i = 0; i < times; ++i){
+      if(nums[i] == nums[times]){
+        printf("links form a cycle!\n");
+        return 0;
+      }
+    }
+    ilock(ip);
+    if(ip->type != T_SYMLINK){
+      return ip;
+    }
+  }
+  printf("open: too deep!\n");
+  return 0;
+}
+
 uint64
 sys_open(void)
 {
@@ -328,6 +360,13 @@ sys_open(void)
       return -1;
     }
     ilock(ip);
+    if(ip->type == T_SYMLINK && (omode & O_NOFOLLOW) == 0){
+      ip = opensymlink(ip);
+      if(ip == 0){
+        end_op();
+        return -1;
+      }
+    }
     if(ip->type == T_DIR && omode != O_RDONLY){
       iunlockput(ip);
       end_op();
@@ -412,7 +451,7 @@ sys_chdir(void)
   char path[MAXPATH];
   struct inode *ip;
   struct proc *p = myproc();
-  
+
   begin_op();
   if(argstr(0, path, MAXPATH) < 0 || (ip = namei(path)) == 0){
     end_op();
@@ -502,4 +541,28 @@ sys_pipe(void)
     return -1;
   }
   return 0;
+}
+
+uint64
+sys_symlink(void)
+{
+  char target[MAXPATH], path[MAXPATH];
+  struct inode *ip;
+  int len;
+
+  if ((len = argstr(0, target, MAXPATH)) < 0 ||
+      argstr(1, path, MAXPATH) < 0) {
+    return -1;
+  }
+
+  begin_op();
+  if ((ip = create(path, T_SYMLINK, 0, 0)) == 0) {
+    end_op();
+    return -1;
+  }
+
+  len = writei(ip, 0, (uint64)target, 0, len);
+  iunlockput(ip);
+  end_op();
+  return len > 0 ? 0 : -1;
 }
